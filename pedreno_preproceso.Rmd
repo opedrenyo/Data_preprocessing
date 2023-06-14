@@ -1,0 +1,810 @@
+---
+title: "A1 - Preproceso de datos"
+author: "Oscar Pedreño Fernandez"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+* ***Sacar el documento en html, en pdf tengo un problema con los márgenes de las chunks. No puedo solucionarlo, en HTML el formato sale correctamente.***
+
+
+```{r setup,echo=FALSE,message=FALSE,warning=FALSE}
+# Eliminamos todos los comentarios de las chunks.
+knitr::opts_chunk$set(comment=NA)
+```
+
+# 1. Lectura de datos y examinación del tipo de variable
+
+## 1.1 Cargar el archivo de datos
+
+```{r carga_datos}
+happiness <- read.csv('Happiness.csv')
+```
+
+## 1.2 Examinar el tipo de datos
+
+Para realizar este apartado usamos la función str, que nos indica la estructura de nuestro dataset junto al número de registros, número de variables y tipo de éstas.
+
+```{r tipo_variables}
+str(happiness)
+```
+
+Como podemos observar, tenemos tres tipos de variables en nuestro dataset. Identificamos que el tipo de las variables no nos encaja en su totalidad, el tipo correcto de variables debería ser:
+
+* Character &rarr; Datos de tipo carácter
+  + Country
+* Factor &rarr; Cualiitativa Nominal
+  + Region
+* Integer &rarr; Valores Enteros: Cuantitativos discretos
+  + Happiness.Rank
+* Numeric &rarr; Cuantitativa continua
+  + Lower.Confidence.Interval
+  + Upper.Confidence.Interval
+  + Family
+  + Freedom
+  + Government.Corruption
+  + Generosity
+  + Happiness.Score
+  + GDP.per.Capita
+  
+  
+```{r resumen_preprocesamiento_1, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+nvar_num <- sum(sapply(happiness, is.numeric))
+nvar_cualit <- sum(sapply(happiness, is.character))
+resumen_preprocesamiento_1 <- c(1, "" , paste0("n.row = ", nrow(happiness), "; n.col = ", ncol(happiness), "; n.var num = ", nvar_num, "; n.var cualit = ", nvar_cualit))
+```
+  
+  
+# 2. Normalización de las variables cuantitativas
+
+## 2.1 Cambiar el nombre de las variables
+
+Siguiendo el patrón comentado en el enunciado, cambiamos el nombre de las variables usando la función **colnames()**^
+
+```{r cambio_nombres}
+colnames(happiness) <- c('Country', 'Region', 'HR', 'HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')
+```
+
+```{r resumen_preprocesamiento_2.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+# Todas, lo simbolizaremos con un *
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_2.1 <- c(2, "*", "Cambiamos el nombre de las variables Happiness.Rank, Happiness.Score, GDP.per.Capita, ife.Expectancy, Government Corruption, Lower.Confidence.Interval y Upper.Confidence.Interval por las mayúsculas de sus iniciales.") 
+```
+Para realizar este cambio, mediante la función colnames le pasamos todos los valores de las columnas del dataframe, tanto las que ya estaban correctas como las nuevas. 
+
+## 2.2 Variables HS, GpC y Freedom
+
+Procedemos a identificar que sucede con las variables en cuestion.
+
+### Variable HS &rarr; Happiness.Score
+```{r review_HS}
+head(happiness$HS)
+```
+Como podemos observar en esta variable vemos diferentes problemas:
+
+#### 1. El separador decimal esta mezclado, en algunos casos se usa el punto y en otros la coma. En R identificamos el separador decimal con un punto.  
+\hfill\break
+Para realizar este cambio vamos a usar la función **sub()** de la siguiente forma:
+
+```{r puntocomaHS.index, echo=FALSE}
+punto_coma.HS_index <- toString(grep(",", happiness$HS, value=FALSE))
+```
+
+```{r Transformaciones_HS}
+happiness$HS <- sub(',', '.', happiness$HS)
+head(happiness$HS)
+```
+
+#### 2. La variable es de tipo character, cuando debería ser de tipo numeric (Cuantitativa continua)
+```{r Tipo_variable_HS}
+class(happiness$HS)
+```
+```{r Cambio_Tipo_HS}
+happiness$HS <- as.numeric((happiness$HS))
+class(happiness$HS)
+```
+```{r resumen_preprocesamiento_2.2.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+punto_coma.HS_index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_2.2.1 <- c(2, punto_coma.HS_index, "Variable HS (Happiness.Score): Cambiamos la coma como separador decimal por un punto.")
+```
+```{r resumen_preprocesamiento_2.2.2, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_2.2.2 <- c(2, "*", "Variable HS (Happiness.Score): Cambiamos la variable de character a numeric.")
+```
+
+### Variable GpC &rarr; GDP.per.Capita
+```{r review_GpC}
+tail(happiness$GpC)
+```
+Vemos que nos sucede lo mismo en la variable GpC, por lo que procedemos a hacer las mismas transformaciones:
+
+#### 1. El separador decimal esta mezclado, en algunos casos se usa el punto y en otros la coma. En R identificamos el separador decimal con un punto.
+
+```{r puntocomaGpC.index, echo=FALSE}
+punto_coma.GpC_index <- toString(grep(",", happiness$GpC, value=FALSE))
+```
+
+```{r Transformaciones_GpC}
+happiness$GpC <- sub(',', '.', happiness$GpC)
+tail(happiness$GpC)
+```
+
+
+#### 2. La variable es de tipo character, cuando debería ser de tipo numeric (Cuantitativa continua)
+
+```{r Tipo_variable_GpC}
+class(happiness$GpC)
+```
+
+```{r Cambio_Tipo_GpC}
+happiness$GpC <- as.numeric((happiness$GpC))
+class(happiness$GpC)
+```
+
+
+```{r resumen_preprocesamiento_2.2.3, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+punto_coma.GpC_index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_2.2.3 <- c(2, punto_coma.GpC_index, "Variable GpC (GDP.per.Capita): Cambiamos la coma como separador decimal por un punto.")
+```
+
+### Variable Freedom
+
+En el caso de la variable Freedom no detectamos ningún tipo de necesidad de transformación, el valor que toman los diferentes países para esta variable es el adecuado.
+
+```{r review_Freedom}
+head(happiness$Freedom)
+```
+
+```{r Tipo_variable_Freedom}
+class(happiness$Freedom)
+```
+
+# 3. Normalización de las variables cualitativas
+
+## 3.1 Revisad la variable Country
+
+```{r review_Country}
+head(happiness$Country)
+```
+Denotamos varios problemas en la variable Country:
+
+#### 1. El texto de los paises contiene espacios en blanco al inicio y final de las palabras.  
+\hfill\break
+Procedemos a removerlo con la función **trimws()**
+
+```{r trimwsCountry.index, echo=FALSE}
+trimwsCountry.index <- toString(grep("^\\s+|\\s+$", happiness$Country, value=FALSE))
+```
+```{r trimws_Country}
+happiness$Country <- trimws(happiness$Country)
+head(happiness$Country)
+```
+
+
+
+```{r resumen_preprocesamiento_3.1.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+trimwsCountry.index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.1.1 <- c(3, trimwsCountry.index, "Variable Country: Eliminar los espacios en blanco de inicio y final de palabra.")
+```
+
+#### 1. La primera letra de cada palabra debe estar en mayúscula 
+\hfill\break
+Usamos str_to_title de la librería stringr:
+
+```{r library_stringr}
+library(stringr)
+```
+
+
+```{r str_to_title_Country}
+happiness$Country <- str_to_title(happiness$Country)
+head(happiness$Country)
+```
+
+```{r resumen_preprocesamiento_3.1.2, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.1 <- c(3, "*", "Variable Country: Capitalizar las palabras de cada país")
+```
+
+
+## 3.2 Revisar la variable Region
+
+```{r review_Region}
+table(happiness$Region)
+```
+
+
+### 3.2.1 Quitar espacios en blanco a comienzo y a final:
+\hfill\break
+Para realizar esta tranformación usaremos **trimws()**
+
+```{r trimwsRegion.index, echo=FALSE}
+trimwsRegion.index <- toString(grep("^\\s+|\\s+$", happiness$Region, value=FALSE))
+```
+
+
+```{r trimws_Region}
+happiness$Region <- trimws(happiness$Region)
+table(happiness$Region)
+```
+
+
+```{r resumen_preprocesamiento_3.2.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+trimwsRegion.index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.1 <- c(3, trimwsRegion.index, "Variable Region: Eliminar los espacios en blanco de inicio y final de palabra.")
+```
+
+
+### 3.2.2 Corregir "AFRCA" por "AFRICA":
+\hfill\break
+Para realizar esta transformación usaremos la función **sub()**
+
+```{r AFRCARegion.index, echo=FALSE}
+AFRCARegion.index <- toString(grep("AFRCA", happiness$Region, value=FALSE))
+```
+
+```{r sub_Region}
+happiness$Region <- sub('AFRCA', 'AFRICA', happiness$Region)
+table(happiness$Region)
+```
+
+```{r resumen_preprocesamiento_3.2.2, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+AFRCARegion.index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.2 <- c(3, AFRCARegion.index, "Variable Region: Cambiamos la palabra AFRCA por AFRICA.")
+```
+
+
+### 3.2.3 Dejar un espacio en blanco entre palabras:
+\hfill\break
+Para realizar esta transformación usaremos la función **str_squish()**
+
+```{r blankspaceRegion.index, echo=FALSE}
+blankspaceRegion.index <- toString(grep("[[:space:]]{2,}", happiness$Region, value=FALSE))
+blankspaceRegion.index
+```
+
+```{r str_squish_Region}
+happiness$Region <- str_squish(happiness$Region)
+table(happiness$Region)
+```
+
+
+```{r resumen_preprocesamiento_3.2.3, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+blankspaceRegion.index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.3 <- c(3, blankspaceRegion.index, "Variable Region: Dejar un espacio en blanco entre palabras.")
+```
+
+
+### 3.2.4 Pasar a formato título:
+\hfill\break
+Para realizar esta transformación usaremos la función **str_to_title()**
+
+```{r str_to_title_Region}
+happiness$Region <- str_to_title(happiness$Region)
+table(happiness$Region)
+```
+
+```{r resumen_preprocesamiento_3.2.4, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.4 <- c(3, "*" , "Variable Region: Capitalizar las palabras de cada región.")
+```
+
+
+### 3.2.4 Cambiar "AND" y "And" por "and":
+\hfill\break
+Para realizar esta transformación usaremos la función **sub()**
+
+```{r sub_region}
+happiness$Region <- sub('And', 'and', happiness$Region)
+happiness$Region <- sub('AND', 'and', happiness$Region)
+table(happiness$Region)
+```
+
+```{r resumen_preprocesamiento_3.2.5, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.5 <- c(3, "*" , "Variable Region: Cambiar 'AND' o 'And' por 'and'.")
+```
+
+### 3.2.5 Como extra y hacerlo un poco más pulido, cambiamos el tipo de variable de region de character a Factor(Variable cualititativa nominal), de este modo dejamos claro que se trata de una categoría de cada país.
+\hfill\break
+Para realizar esta transformación usaremos la función **as.factor()**
+
+```{r factor(region)}
+happiness$Region <- factor(happiness$Region)
+str(happiness)
+```
+
+```{r resumen_preprocesamiento_3.2.6, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_3.2.6 <- c(3, "*" , "Variable Region: Cambiar el tipo de variable de Character a Factor.")
+```
+
+
+# 4. Estudio de la inconsistencia entre variables
+
+## 4.1 HR Vs HS
+
+Antes de nada, necesitamos entender los valores de cada categoría:
+
+1. HR &rarr; Happiness.Rank, es decir el ranking de los paises de 1 a 157 por order de Happiness.Score
+2. HS &rarr; Happiness.Score, ranking del 1 al 10 que define la felicidad de un país.
+
+Por lo que la correlación entre estas variables debe ser directa, esto quiere decir que el país con HR 1 debe tener la HS más alta y asi sucesivamente.
+
+Procedemos a analizar los valores de las categorías en cuestión y nos damos cuenta de que:
+
+```{r Scatterplot1HSHR}
+plot(x=happiness$HR, y=happiness$HS, main="Correlación H.Rank Vs H.Score")
+```
+#### 1. Vemos una inconsistencia clara entre ambas variables, hay valores que no siguen la correlación directa. (Todos esos puntos que se distancian de la recta de correlación.)
+\hfill\break
+Para solucionar esta inconsistencia vamos a realizar lo siguiente: 
+
+* Hacemos un sort del dataframe segun la variable HS y cambiamos los valores de HR con un vector c(1:nrow(happiness)). Donde nrow(happiness) es el número de filas del dataframe.
+
+```{r order_happinessHS}
+happiness <- happiness[order(happiness$HS, decreasing = TRUE),]
+head(happiness)
+```
+
+```{r differentHR.index, echo=FALSE}
+comparadorHR <- c(1:nrow(happiness))
+comparadorHR.index = ! (happiness$HR == comparadorHR)
+differentHR.index = toString(which(comparadorHR.index))
+```
+
+```{r new_happinessHR}
+happiness$HR <- c(1:nrow(happiness))
+head(happiness)
+```
+
+De este modo ahora, el valor de HR es totalmente dependiente del valor de HS y si volvemos a graficarlos mediante un Scatterplot vemos como la dependencia y por lo tanto la correlación ya no tiene valores outliers.
+
+```{r Scatterplot2HSHR}
+plot(x=happiness$HR, y=happiness$HS, main="Correlación H.Rank Vs H.Score")
+```
+
+
+```{r resumen_preprocesamiento_4.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+differentHR.index
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_4.1 <- c(4, differentHR.index, "Variable HR (Happiness.Rank): Cambiar el ranking en dependencia del valor de HS (Happiness.Score.")
+```
+
+
+## 4.2 LCI Vs UCI
+
+Volvemos a hacer lo mismo, entendemos los valores de cada categoría:
+
+1. LCI &rarr; Lower.Confidence.Interval: Límite inferior del intervalo de confianza de la media de Happiness.Score.
+2. UCI &rarr; Upper.Confidence.Interval: Límite superior del intervalo de confianza de la media de Happiness.Score.
+
+En este caso identificamos que el LCI siempre debería ser menor o igual que el UCI, en caso contrario, los datos no deberían ser correctos.
+
+Procedemos a analizar los valores de las categorías en cuestión y nos damos cuenta de que:
+
+```{r Plot1LCIUCI}
+plot(happiness$UCI, type="l", col ="red", main = "UCI VS LCI")
+lines(happiness$LCI, type = "l", col = "blue")
+legend("topright", legend=c("UCI", "LCI"), col = c("red", "blue"), lty = 1)
+```
+Como podemos observar en este gráfico, existen ciertos paises en los que podemos ver un cruce de información y lo que sería el UCI pasa a ser el LCI y viceversa.  
+
+Para resolver esta incosistencia, debemos identificar en qué registros sucede y cambiar los valores:  
+
+Mediante un *which()* detectamos en qué valores del índice el valor de LCI es mayor que UCI.
+
+```{r whichLCI>UCI}
+LCIgtUCI <- which(happiness$LCI>happiness$UCI)
+LCIgtUCI
+```
+Seleccionamos esos valores del índice y le decimos que cambie los valores de UCI a LCI y viceversa:
+
+```{r change_UCILCI_values}
+happiness[LCIgtUCI, c("LCI", "UCI")] <- happiness[LCIgtUCI, c("UCI", "LCI")]
+```
+
+Volvemos a graficar para asegurarnos que la inconsistencia ha desaparecido:
+
+```{r Plot2LCIUCI}
+plot(happiness$UCI, type="l", col ="red", main = "UCI VS LCI")
+lines(happiness$LCI, type = "l", col = "blue")
+legend("topright", legend=c("UCI", "LCI"), col = c("red", "blue"), lty = 1)
+```
+
+
+```{r resumen_preprocesamiento_4.2, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+LCIgtUCI.index <- toString(LCIgtUCI)
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_4.2 <- c(4, LCIgtUCI.index, "Variable UCI y LCI (Lower.Confidence.Interval), (Upper.Confidence.Interval): Cruzar los valores de ambas variables para los registros en los que el UCI es mayor que el LCI.")
+```
+
+
+# 5. Valores atípicos
+
+## 5.1 Revisar si hay valores atípicos en las variables HS, GC, Generosity y Family.
+
+Para graficar e identificar valores atípicos en las variables en cuestión, vamos a usar ggplot2. Por eso tenemos que cargar la libreria
+
+```{r library_ggplot2}
+library(ggplot2)
+```
+
+### Variable HS &rarr; Happiness.Score
+
+Primero identificamos el rango de valores aceptados de la variable. En este caso el rango es 1 a 10.
+
+Identificamos el rango de valores real en la variable:
+
+```{r summary(HS)}
+summary(happiness$HS)
+```
+Como observamos los valores que identificamos en el dataset forman parte del rango de valores aceptado.
+
+Además la función de densidad de la variable se concentra en un rango aceptable
+
+```{r density(HS)}
+ggplot(happiness, aes(x=HS)) + geom_density()
+```
+
+Para identificar valores atípicos, utilizaremos los gráficos boxplot que como nos dice la teoria, un valor atípico es aquel que es representado como puntos extremos alejados de los "bigotes" o segmentos exteriores de la caja. Los "bigotes" se extienden hasta los valores mínimo y máximo de la serie de datos o hasta 1.5 veces el Rango intercuartílico (IQR).
+
+```{r boxplot(HS)}
+boxplot(happiness$HS, main="Happiness Score", col = "gray")
+```
+Como podemos observar, el boxplot nos indíca que en la variable **HS** todos los valores se encuentran dentro del rango de +-1.5*IQR, por lo tanto podemos decir con certeza que no hay valores atípicos en esta variable.
+
+
+### Variable GC &rarr; Government.Corruption
+
+Volvemos a hacer el mismo proceso. Primero identificamos el rango de valores aceptados para la variable GC. Éste sería el resultado de una respuesta binaria es decir, comprenderemos el rango aceptado entre 0 y 1.
+
+De este modo, identificamos el rango de valores real en la variable:
+
+```{r summary(GC)}
+summary(happiness$GC)
+```
+Como observamos los valores que identificamos en el dataset forman parte del rango de valores aceptado.
+
+La función de densidad de la variable se concentra en un rango aceptable con tendencia a dejar una larga cola por el extremo derecho, lo que nos indica que hay unos pocos paises con tendencia a tener gobiernos corruptos, pero siempre dentro de un rango aceptado.
+
+```{r density(HC)}
+ggplot(happiness, aes(x=GC)) + geom_density()
+```
+
+Procedemos a analizar si existen valores atípicos basándonos en el gráfico boxplot:
+
+```{r boxplot(GC)}
+boxplot(happiness$GC, main="Government Corruption", col = "gray")
+```
+En este caso podemos ver como esa larga cola en el extremo derecho de la función de densidad se traduce en una serie de valores atípicos cuando dibujamos el boxplot.  
+
+Identificamos estos valores atípicos mediante la función boxplot.stats()$out:
+
+```{r outliers_number(GC)}
+GC.Out <- boxplot.stats(happiness$GC)$out
+length(GC.Out)
+```
+Vemos que son 12 valores que pertenecen a los siguientes países:
+
+```{r outliers_countries(GC)}
+GC.Out.Index <- which(happiness$GC %in% c(GC.Out))
+happiness[GC.Out.Index,]
+```
+
+En este caso, como los valores atípicos forman parte de los valores aceptados y, independientemente del país, son valores que cabría la posibilidad que fueran reales. Los aceptamos y los definimos como valor atípico pero **no anomalo**. 
+
+
+### Variable Generosity
+
+Seguimos aplicando el mismo proceso. El rango de valores aceptados para la variable Generosity sería el resultado de una respuesta binaria, es decir, comprenderemos el rango aceptado entre 0 y 1.
+
+De este modo, identificamos el rango de valores real en la variable:
+
+```{r summary(Generosity)}
+summary(happiness$Generosity)
+```
+Como observamos los valores que identificamos en el dataset forman parte del rango de valores aceptado, además, observamos como el valor mínimo se situa en el 0.0. En este caso, aceptamos este valor como atípico y no anomalo. Esto es porque la variable *Generosity* responde a la pregunta: ¿Ha donado o no dinero para caridad, el
+pasado mes? La respuesta puede ser que no, en la totalidad del país? Eso sería poco probable, pero puede suceder.
+
+En la función de densidad de la variable generosity nos ocurre algo parecido a la de GC, los valores dejan una cola por el extremo superior, indicando que hay ciertos valores alejandose de la media en valores grandes. Aún así, son valores que forman parte del rango aceptado.
+
+```{r density(Generosity)}
+ggplot(happiness, aes(x=Generosity)) + geom_density()
+```
+
+Procedemos a analizar si existen valores atípicos basándonos en el gráfico boxplot:
+
+```{r boxplot(Generosity)}
+boxplot(happiness$Generosity, main="Generosity", col = "gray")
+```
+
+Como bien hemos puntualizado en el párrafo anterior, existen valores atípicos por el extremo superior, pero tal y como nos sucedió en la variable GC, los aceptamos ya que forman parte de los valores aceptados y nos pueden servir para explicar ciertas tendencias y casos puntuales de la variable.
+
+Identificamos estos valores atípicos mediante la función boxplot.stats()$out:
+
+```{r outliers_number(Generosity)}
+Generosity.Out <- boxplot.stats(happiness$Generosity)$out
+length(Generosity.Out)
+```
+Vemos que son 4 valores que pertenecen a los siguientes países:
+
+```{r outliers_countries(Generosity)}
+Generosity.Out.Index <- which(happiness$Generosity %in% c(Generosity.Out))
+happiness[Generosity.Out.Index,]
+```
+
+Por tanto, para la variable *Generosity* aceptamos los valores atípicos como no anómalos.
+
+
+
+### Variable Family
+
+Identificamos el rango de valores aceptados de la variable como una respuesta a la pregunta ¿tiene familiares o amigos con los que pueda contar? Siendo las posibles respuestas 0,1 y 2.
+
+Identificamos el rango de valores real en la variable:
+
+```{r summary(Family)}
+summary(happiness$Family)
+```
+Como observamos los valores que identificamos en el dataset forman parte del rango de valores aceptado. Aunque siendo críticos y conscientes del significado de la variable, debemos tener algo en cuenta: Es posible que la media de un país situe la respuesta a esta pregunta en 0? Es decir, ¿nadie, en un país entero, tiene familiares y amigos? En este caso entendemos que el extremo 0 de esta respuesta como media de un país no debería ser aceptado ya que la muestra seleccionada de ese país concreto no es representativa de la imagen del país. Procederemos a tratar este valor atípico.
+
+La función de densidad de la variable se concentra en un rango aceptable:
+
+```{r density(Family)}
+ggplot(happiness, aes(x=Family)) + geom_density()
+```
+
+En este caso, vemos que la función de densidad nos muestra un gráfico contrario a los anteriores. Vemos una cola en el extremo inferior empezando en el 0. Aún así, el rango de datos se encuentra dentro de los valores aceptados, menos el 0 que será tratado posteriormente.
+
+Analizamos si existen valores atípicos basándonos en el grafico boxplot:
+
+```{r boxplot(Family)}
+boxplot(happiness$Family, main="Family", col = "gray")
+```
+
+Observamos que como bien hemos analizado, el valor 0 se encuentra fuera del rango +- 1.5*IQR por lo que lo definimos como valor atípico. 
+
+Identificamos estos valores atípicos mediante la función boxplot.stats()$out:
+
+```{r outliers_number(Family)}
+Family.Out <- boxplot.stats(happiness$Family)$out
+length(Family.Out)
+```
+Vemos que hay un solo valor que pertenece al siguiente país:
+
+```{r outliers_countries(Family)}
+Family.Out.Index <- which(happiness$Family %in% c(Family.Out))
+happiness[Family.Out.Index,]
+```
+Como bien hemos ido comentando, el valor atípico en cuestión si que se trataría de un valor anómalo por probabilidad. Así que procedemos a tratarlo como NA.  
+
+Para hacerlo usamos la función **replace()**
+
+```{r outliers_to_NA(Family)}
+happiness$Family <- replace(happiness$Family, happiness$Family == 0, NA)
+happiness[Family.Out.Index,]
+```
+
+El valor de Family para el país Togo ahora aparece como *NA*.
+
+Al volver a graficar el boxplot vemos que ya no nos aparece el valor atípico de Togo:
+
+```{r boxplot_wo_outliers(Family)}
+boxplot(happiness$Family, main="Family", col = "gray")
+```
+
+```{r resumen_preprocesamiento_5.1, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+Family.Out.Index2 <- toString(Family.Out.Index)
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_5.1 <- c(5, Family.Out.Index2, "Variable Family : Detección de valores anómalos y cambio a NA.")
+```
+
+# 6. Imputación de valores
+
+En este ejercicio y, tal como nos indica el enunciado, utilizaremos la **distancia de Gower** para la alicación de valor a los valores perdidos(NAs), para su aplicación, usaremos la función **kNN()** del paquete **VIM**:
+
+Para ello, procedemos a instalar y cargar la librería VIM:
+
+```{r library(VIM), message=FALSE, warning=FALSE}
+# install.packages("VIM")
+library("VIM")
+```
+
+Cuando analizamos la variable Family, nos damos cuenta que hay una serie de valores perdidos, en total son 6. Esto lo podemos ver usando la función **which()** junto con **is.na()**, así veremos los índices de los valores con valores perdidos en la variable Family.
+
+Los valores perdidos corresponden a los siguientes paises:
+
+```{r is_na(Family)}
+is_na_family.index <- which(is.na(happiness$Family))
+happiness[is_na_family.index,]
+```
+
+```{r resumen_preprocesamiento_6, echo=FALSE}
+# Filas a las que le afectan estos cambios: 
+is_na_family.index2 <- toString(is_na_family.index)
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+resumen_preprocesamiento_6 <- c(6, is_na_family.index2, "Variable Family : Detección de valores perdidos e imputación de valor basandonos en la distancia de Glower con 11 vecinos.")
+```
+
+Mediante la formula kNN() y un número "k" de vecinos igual a 11, convertimos los valores perdidos de la variable Family:
+
+```{r kNN(Family)}
+happiness.completo <- kNN(data=happiness, variable="Family", k=11)
+summary(happiness.completo)
+```
+
+Copiamos la nueva info de la variable Family a nuestro dataset original y comprobamos que no hay más NA en la variable Family.
+
+```{r newFamilycolumn}
+happiness$Family <- happiness.completo$Family
+is_na_family.index
+```
+
+Para comprobar el nuevo valor de los antiguos valores perdidos lo podemos hacer de la siguiente forma:
+
+```{r new_na_values(Family)}
+happiness[is_na_family.index,]
+```
+
+# 7. Estudio descriptivo
+
+## 7.1 Representación gráfica de variables
+
+Antes que nada, calculamos las medias de Freedom para cada región y las colocamos en un dataframe usando **aggregate()**:
+
+```{r aggregate_FreedombyRegion}
+FreedombyRegion <- aggregate(Freedom ~ Region, data = happiness, mean)
+FreedombyRegion
+```
+
+Una vez tenemos el dataframe listo procedemos a crear la visualización, procedemos a elegir un barplot. El motivo es sencillo, como se trata de la comparación de valores entre categorías nominales, lo mejor es visualizarlo de la forma más sencilla mediante barras.
+
+Como las categorías tienen nombres largos, colocaremos en el eje X la variable numérica (Freedom), y en la Y la variable categorica, de este modo, tendremos más espacio en el gráfico entero. 
+
+Usaremos la función reorder donde le indicaremos que queremos ordenar la variable región en función de Freedom (de mayor a menor). 
+
+```{r barplot_FreedombyRegion}
+barplot_7.1 <- ggplot(FreedombyRegion, aes(x=Freedom , y=reorder(Region, Freedom))) + 
+  geom_bar(stat="identity") + ggtitle("Freedom by Region") +
+  labs(x="Freedom", y = "Region") +
+  theme(plot.title = element_text(hjust=0.5, size = 15)) 
+barplot_7.1
+```
+
+## 7.2 Medidas características
+
+Tomaremos como medidas las del esquema general de los apuntes "Preprocesamiento de los datos" página 25.
+
+Para calcular la media winsorizada necesitaremos cargar la libreria **psych**:
+
+```{r library(psych), message=FALSE, warning=FALSE}
+library("psych")
+```
+
+
+Creamos un vector con las variables cuantitativas correspondientes y la formula que la genera, mediante la función sapply.
+
+A los valores de cada agregación los redondeamos a 3 decimales, de este modo queda mucho más pulcro y se pueden seguir viendo las diferencias, para aplicar esto usaremos la función **round()**. 
+
+```{r vectores_medidas}
+mean <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], mean), 3)
+median <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], median), 3)
+trimmed_mean <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], function(x) mean(x, trim = 0.05)), 3)
+winsor_mean <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], function(x) winsor.mean(x, trim=0.05)), 3)
+sd <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], sd), 3)
+IQR <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], IQR), 3)
+mad <- round(sapply(happiness[ , c('HS', 'LCI', 'UCI', 'GpC', 'Family', 'LE', 'Freedom', 'GC', 'Generosity')], mad), 3)
+```
+
+Separamos las medidas de tendencia central de las de dispersión y las colocamos en un DataFrame.
+
+```{r central_tendency_df}
+central_tendency <- data.frame(mean, median, trimmed_mean, winsor_mean)
+central_tendency
+```
+
+
+```{r dispersion_df}
+dispersion <- data.frame(sd, IQR, mad)
+dispersion
+```
+
+# 8 Archivo final
+
+```{r resumen_preprocesamiento_final, echo=FALSE}
+# Creamos un vector con los cambios para crear posteriormente la tabla de preprocesamiento.
+nvar_num_final <- sum(sapply(happiness, is.numeric))
+nvar_cualit_final <- sum(sapply(happiness, is.character)) + sum(sapply(happiness, is.factor))
+resumen_preprocesamiento_final <- c(8, "" , paste0("n.row = ", nrow(happiness), "; n.col = ", ncol(happiness), "; n.var num = ", nvar_num_final, "; n.var cualit = ", nvar_cualit_final))
+```
+
+```{r write.csv()}
+write.csv(happiness, 'pedreno_fichero_clean.csv')
+```
+
+
+# 9. Resumen Ejecutivo
+```{r libraries table, echo = FALSE, warning=FALSE, message=FALSE}
+library(knitr)
+library(kableExtra)
+```
+
+
+```{r resumen_preprocesamiento_df, echo=FALSE}
+# Creamos el dataframe a partir de todos los vectores de preprocesamiento que hemos ido creando a lo largo del rmd.
+
+matrix <- rbind(resumen_preprocesamiento_1, resumen_preprocesamiento_2.1, resumen_preprocesamiento_2.2.1, resumen_preprocesamiento_2.2.2, resumen_preprocesamiento_2.2.3, resumen_preprocesamiento_3.1.1, resumen_preprocesamiento_3.1, resumen_preprocesamiento_3.2.1, resumen_preprocesamiento_3.2.2, resumen_preprocesamiento_3.2.4, resumen_preprocesamiento_3.2.5, resumen_preprocesamiento_3.2.6, resumen_preprocesamiento_4.2, resumen_preprocesamiento_5.1, resumen_preprocesamiento_6, resumen_preprocesamiento_final)
+
+resumen_preprocesamiento <- as.data.frame(matrix, row.names=FALSE)
+```
+
+
+```{r resumen_preprocesamiento_tabla, echo=FALSE}
+
+tabla_resumen <- kable(resumen_preprocesamiento, caption ="Resumen del preprocesamiento",  col.names = c("ID", "Row", "Message")) %>%
+  column_spec(2:3, width = "22em") %>%
+  kable_styling(latex_options = c("HOLD_position"))
+
+tabla_resumen
+```
+
+## 9.2 Resumen estadístico
+
+A partir de la información obtenida a lo largo del preprocesamiento de los datos, hago un breve comentario de cada variable destacando lo más relevante y característico:
+
+* **Country**: *Variable categórica Nominal*. Se trata de una variable descriptiva en la que no se repite ningún valor y corresponde a un registro por país. Total 157 países.
+* **Region**: *Variable categórica Nominal*. Se trata de una variable descriptiva que categoriza los países por su region. Distinguimos 10 regiones. "Sub-Saharan Africa(24.2%), Central and Eastern Europe(18.5%), Latin America and Caribbean(15.3%), Western Europe(13.4%), Middle East and Northern Africa(12.1%), Southeastern Asia(5.7%), Southern Asia(4.5%), Australia and New Zealand(1.3%).
+* **HR** &rarr; Happiness.Rank: *Variable numérica discreta*. Ranking relativo a la felicidad de cada país. Toma valores entre 1 y 157 sin espacios ni repeticiones. Con esta variable normalizamos la puntuación de felicidad relativa a cada país. 
+* **HS** &rarr; Happiness.Score: *Variable númerica continua.* Representa la nota de felicidad dentro de la escala 1 a 10. Responde a la pregunta, ¿Cçmo calificarías tu felicidad en escala de 1 a 10?. Esta variable toma un valor mínimo de 2.905(Burundi), un valor máximo de 7.526(Denmark). El RIC/IQR de la variable HS es de 1.865. La media es de 5.38 mientras que la mediana es de 5.31, lo que nos indica que la distribución tiende un poco a los valores superiores de la mediana. La desviación estandar de la variable HS es de 1.14.
+* **LCI** &rarr; Lower.Confidence.Interval: *Variable numérica continua*.Se trata del Límite inferior del intervalo de confianza de la media de Happiness.Score, es decir los valores mínimos entre los cuales se estima que estará cierto valor desconocido respecto de un parámetro poblacional con un nivel de confianza (no específicado en el ejercicio) determinado. Al ser una variable dependiente de HS sigue una distribución parecida con valores mínimos de 2.732(Burundi) y valor máximo de 7.460(Denmark).
+* **UCI** &rarr; Upper.Confidence.Interval: *Variable numérica continua*. Se trata del Límite superior del intervalo de confianza de la media de Happiness.Score, es decir los valores máximos entre los cuales se estima que estará cierto valor desconocido respecto de un parámetro poblacional con un nivel de confianza (no específicado en el ejercicio) determinado. Al ser una variable dependiente de HS sigue una distribución parecida con valores mínimos de 3.078(Burundi) y valor máximo de 8.241(Denmark).
+* **GpC** &rarr; GDP.por.Capita: *Variable numérica continua*. Se trata de un indicador económico en el que nos informa del poder adquistivo por ciudadano del país en cuestión. Para su calculo se divide el GDP del país entre el número de habitantes. Existe una concentración de valores alrededor de la mediana(1.02) y una serie de paises con valores muy altos, lo que genera un desplazamiento considerable de la media(7.95), esto nos indica que se trata de una variable con una dispersión muy alta(28.61) y 10 valores fuera del IQR(0.64) por el extremo superior, que es donde identificamos la larga cola de observaciones. El valor mínimo que toma la variable GpC es de 0.0(Somalia), el valor máximo es de 150.79(United States).
+* **Family**: *Variable numérica contínua*. Se trata de una variable que explica el entorno familiar y social de los ciudadanos de un país. Responde a la pregunta, ¿Tiene familiares o amigos con los que pueda contar? Las posibles respuestas son 0 (No), 1(algunos familiares y/o amigos) y 2(Muchos familiares y/o amigos). La media de la varialbe Family es de 0.79, mientras que la mediana es de 0.84, lo que nos indica que existe una tendencia a que la muestra se incline hacia el extremo inferior. Como medidas de dispersión vemos que el IQR es de 0.37, la desviación estandar de 0.25. El valor mínimo de la variable está en 0.104 (Benin) y el valor máximo es de 1.17(New Zealand).
+* **LE** &rarr; Life.Expectancy. *Variable numérica contínua*. Trata la salud y esperanza de vida en cada país. Esta expresada en número de años divido por 100. La media de la variable LE es de 0.55 y la mediana de 0.59, son bastante parecidas por lo que podemos afirmar que su distribución es bastante simétrica. Como medidas de dispersión tenemos la desviación estandar en 0.22 y el IQR en 0.34. Su valor mínimo esta en 0.00(Sierra Leone) y su valor máximo en 0.95(Hong Kong).
+* **Freedom**: *Variable numérica contínua*. Trata la libertad promedio de cada país. Es la respuesta binaria a la pregunta, ¿Considera o no que tiene libertad para actuar? Donde las respuestas posibles son 0(No) o 1(Sí). La media(0.37) y la mediana(0.39) son bastante similares lo que nos indica la simetría de la distribución. Teniendo como valor mínimo el 0.0(Sudan) y 0.60(Uzbekistan). 
+* **GC** &rarr; Government.Corruption. *Variable numérica contínua*. Trata la cuestión de corrupción de un país. Es la percepción del estado de corrupción del país (politica y negocios). La media(0.10) y la mediana(0.13) se encuentran cercanas, a pesar de que el rango superior contiene valores atípicos muy altos. Su mínimo es de 0.0(Bosnia And Herzegovina), y su valor máximo es de 0.50(Rwanda).
+* **Generosity**. *Variable numérica contínua*. Trata la cuestión de generosidad promedio de un país. Responde a la pregunta de posibilidad binaria, ¿Ha donado o no dinero para caridad, el pasado mes?. Siendo las posibles respuestas 0(No) o 1(Sí). Su media es de 0.24 y su mediana es de 0.22, son valores bastante simétricos. Su desviación estandar es de 0.13 y su IQR es de 0.15. Su valor mínimo es de 0(Greece) y su valor máximo es de 0.819(Myanmar).
+
+# Apéndice: Bibliografía
+1.  [Uso de la función sub()](### https://www.digitalocean.com/community/tutorials/sub-and-gsub-function-r)
+2.  [Convertir de character a numeric](https://statisticsglobe.com/convert-character-to-numeric-in-r/)
+3.  [Poner primera letra en mayúscula](https://www.geeksforgeeks.org/convert-first-letter-of-every-word-to-uppercase-in-r-programming-str_to_title-function/)
+4.  [Función str_squish](### https://statisticsglobe.com/replace-multiple-spaces-by-single-space-in-r)
+5.  [Función Order](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/order)
+6.  [Función Which](### https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/which)
+7.  [Cambiar valores entre columnas](https://stackoverflow.com/questions/5724419/is-it-possible-to-swap-columns-around-in-a-data-frame-using-r)
+8.  [Scatterplot](https://www.statmethods.net/graphs/scatterplot.html)
+9.  [Gráfico con 2 lineas](https://r-coder.com/grafico-lineas-r/)
+10. [Boxplot](### htps://statsandr.com/blog/outliers-detection-in-r/#boxplot)
+11. [Función Replace()](### https://www.digitalocean.com/community/tutorials/replace-in-rt)
+12. [Comments y Warning en rmd](https://stackoverflow.com/questions/45399587/how-to-remove-warning-messages-in-r-markdown-document)
+13. [Función Reorder Barplot](https://stackoverflow.com/questions/25664007/reorder-bars-in-geom-bar-ggplot2-by-value)
+14. [Función Aggregate](# https://www.rdocumentation.org/packages/stats/versions/3.6.2/topics/aggregate)
+15. [Función Trimmed mean](https://www.r-bloggers.com/2021/12/how-to-find-a-trimmed-mean-in-r/)
+16. [Función Round](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/Round)
+17. [Función paste0](https://statisticsglobe.com/r-paste-paste0-function-example)
+18. [Función toString](https://www.rdocumentation.org/packages/base/versions/3.6.2/topics/toString)
+19. [Grep con Regex](https://stackoverflow.com/questions/33555167/grep-for-a-regular-expression-in-r)
+20. [Parámetro row.names](https://stackoverflow.com/questions/24428051/removing-display-of-row-names-from-data-frame)
